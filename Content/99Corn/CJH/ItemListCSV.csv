@@ -1,0 +1,3 @@
+---,ItemName,ItemImage
+BP_WeaponTest,BP_WeaponTest,/Script/Engine.Texture2D'/Game/99Corn/CJH/Images/weaponImageTest.weaponImageTest'
+BP_Skill_SpeedUp,BP_Skill_SpeedUp,/Script/Engine.Texture2D'/Game/99Corn/CJH/Images/SkillImageTest.SkillImageTest'
