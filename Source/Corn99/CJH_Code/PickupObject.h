@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
-#include "Corn99/PickupSystem.h"
+#include "Corn99/CJH_Code/PickupSystem.h"
 #include "PickupObject.generated.h"
 
 
