@@ -20,5 +20,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Speedup(AActor* Picker);
+
+	UFUNCTION(BlueprintCallable)
+	void SpawnWall(AActor* Picker, TSubclassOf<AActor> WallActorClass);
 };
 
