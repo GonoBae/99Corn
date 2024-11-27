@@ -2,58 +2,150 @@
 
 
 #include "PickupWeapon.h"
+#include "GameFramework/Character.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/World.h"
+#include "Net/UnrealNetwork.h"  
 
 void APickupWeapon::Pickup(AActor* Picker)
 {
-    active = false;
-    SetActorHiddenInGame(true);
+    Super::Pickup(Picker);
 
-    // 플레이어 액터가 있는지 확인
-    AActor* PlayerActor = Cast<AActor>(Picker);
-    if (PlayerActor)
+    ACharacter* Character = Cast<ACharacter>(Picker);
+    if (Character)
     {
-        UE_LOG(LogTemp, Log, TEXT("Weapon Picked Up by Player"));
-
-        // 현재 객체를 HeldObject에 설정하여 이후 던지기 시 활용
-        HeldObject = this;
-
-        // 플레이어의 Skeletal Mesh Component를 가져옴
-        USkeletalMeshComponent* PlayerMesh = PlayerActor->FindComponentByClass<USkeletalMeshComponent>();
-        if (PlayerMesh)
+        USkeletalMeshComponent* CharacterMesh = Character->GetMesh();
+        if (CharacterMesh)
         {
-            // "HandSocket"에 부착
-            AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("HandSocket"));
-
-         
-            SetActorHiddenInGame(false);
+            FName HandSocketName = TEXT("HandSocket"); 
+            AttachToComponent(CharacterMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandSocketName);
         }
-        active = true;
     }
 }
 
-void APickupWeapon::ThrowWeaponTest()
+
+void APickupWeapon::FindActorsInCone(
+    const FVector& Origin,
+    const FVector& Direction,
+    float ConeAngle,
+    float MaxDistance,
+    TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes,
+    TArray<AActor*> IgnoreActors,
+    TArray<AActor*>& CloseRangeActors,
+    TArray<AActor*>& FarRangeActors,
+    bool bDrawDebug
+)
 {
-    if (HeldObject)
+    TArray<FHitResult> HitResults;
+
+    UKismetSystemLibrary::SphereTraceMultiForObjects(
+        GetWorld(),
+        Origin,
+        Origin + Direction * MaxDistance,
+        MaxDistance,
+        ObjectTypes,
+        false,
+        IgnoreActors,
+        EDrawDebugTrace::None,
+        HitResults,
+        true
+    );
+
+    float HalfConeAngleRadians = FMath::DegreesToRadians(ConeAngle / 2);
+    float HalfDistance = MaxDistance / 2.0f;
+
+    if (bDrawDebug && HasAuthority()) // 서버에서 Multicast 호출
     {
-        // 오브젝트를 손에서 분리
-        DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+        MulticastDrawDebugCone(Origin, Direction, ConeAngle, MaxDistance, FColor::Green, FColor::Red);
+    }
 
-        // RootComponent가 물리 시뮬레이션을 지원하는지 확인하고 설정
-        UPrimitiveComponent* PrimitiveComp = Cast<UPrimitiveComponent>(GetRootComponent());
-        if (PrimitiveComp)
+    for (const FHitResult& Hit : HitResults)
+    {
+        if (AActor* HitActor = Hit.GetActor())
         {
-            // 물리 시뮬레이션 활성화
-            PrimitiveComp->SetSimulatePhysics(true);
+            FVector ToTarget = HitActor->GetActorLocation() - Origin;
+            float DistanceToTarget = ToTarget.Size();
 
-            // 전방 방향으로 힘을 가하여 던지기
-            FVector ForwardVector = GetActorForwardVector();
-            FVector ThrowForce = ForwardVector * 10000.0f; // 원하는 힘 크기
-            PrimitiveComp->AddImpulse(ThrowForce, NAME_None, true);
+            if (DistanceToTarget > MaxDistance)
+            {
+                continue;
+            }
+
+            ToTarget.Normalize();
+            FVector NormalizedDirection = Direction.GetSafeNormal();
+
+            float DotProduct = FVector::DotProduct(NormalizedDirection, ToTarget);
+            float AngleToTarget = FMath::Acos(DotProduct);
+
+            if (AngleToTarget <= HalfConeAngleRadians)
+            {
+                if (DistanceToTarget <= HalfDistance)
+                {
+                    CloseRangeActors.Add(HitActor);
+                }
+                else
+                {
+                    FarRangeActors.Add(HitActor);
+                }
+            }
+        }
+    }
+}
+
+void APickupWeapon::MulticastDrawDebugCone_Implementation(
+    const FVector& Origin,
+    const FVector& Direction,
+    float ConeAngle,
+    float MaxDistance,
+    const FColor& CloseRangeColor,
+    const FColor& FarRangeColor)
+{
+    if (!GetWorld())
+    {
+        UE_LOG(LogTemp, Error, TEXT("GetWorld() returned NULL"));
+        return;
+    }
+
+    const int32 Segments = 50;
+    FVector Forward = Direction.GetSafeNormal();
+    FVector Right = FVector::CrossProduct(Forward, FVector::UpVector).GetSafeNormal();
+    FVector Up = FVector::CrossProduct(Right, Forward).GetSafeNormal();
+
+    FVector PrevPointClose, PrevPointFar;
+
+    float HalfConeAngleRadians = FMath::DegreesToRadians(ConeAngle / 2);
+    float HalfDistance = MaxDistance / 2.0f;
+
+    for (int32 i = 0; i <= Segments; ++i)
+    {
+        float Angle = -HalfConeAngleRadians + (i * (2 * HalfConeAngleRadians / Segments));
+        FVector RotatedDirection = Forward.RotateAngleAxis(FMath::RadiansToDegrees(Angle), Up);
+
+        FVector EndPointClose = Origin + RotatedDirection * HalfDistance;
+        FVector StartPointFar = EndPointClose;
+        FVector EndPointFar = Origin + RotatedDirection * MaxDistance;
+
+        if (i > 0)
+        {
+            DrawDebugLine(GetWorld(), Origin, EndPointClose, CloseRangeColor, false, 5.0f, 0, 3.0f);
+            DrawDebugLine(GetWorld(), PrevPointClose, EndPointClose, CloseRangeColor, false, 5.0f, 0, 3.0f);
+
+            DrawDebugLine(GetWorld(), StartPointFar, EndPointFar, FarRangeColor, false, 5.0f, 0, 3.0f);
+            DrawDebugLine(GetWorld(), PrevPointFar, EndPointFar, FarRangeColor, false, 5.0f, 0, 3.0f);
         }
 
-        // HeldObject 초기화
-        HeldObject = nullptr;
+        PrevPointClose = EndPointClose;
+        PrevPointFar = EndPointFar;
     }
-    active = false;
+
+}
+
+
+
+void APickupWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 }
 

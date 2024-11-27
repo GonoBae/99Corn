@@ -1,24 +1,36 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "PickupObject.h"
+#include "Net/UnrealNetwork.h" 
 #include "PickupWeapon.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class CORN99_API APickupWeapon : public APickupObject
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 public:
-	UFUNCTION(BlueprintCallable)
-	void Pickup(AActor* Picker) override;
+    UFUNCTION(BlueprintCallable)
+    virtual void Pickup(AActor* Picker) override;
 
-	UFUNCTION(BlueprintCallable)
-	void ThrowWeaponTest();
+    UFUNCTION(NetMulticast, Reliable)
+    void MulticastDrawDebugCone(const FVector& Origin, const FVector& Direction, float ConeAngle, float MaxDistance, const FColor& CloseRangeColor, const FColor& FarRangeColor);
 
-	AActor* HeldObject;
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+    UFUNCTION(BlueprintCallable)
+    void FindActorsInCone(
+        const FVector& Origin,
+        const FVector& Direction,
+        float ConeAngle,
+        float MaxDistance,
+        TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes,
+        TArray<AActor*> IgnoreActors,
+        TArray<AActor*>& CloseRangeActors,
+        TArray<AActor*>& FarRangeActors,
+        bool bDrawDebug
+    );
 };

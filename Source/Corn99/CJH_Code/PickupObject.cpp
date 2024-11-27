@@ -2,13 +2,14 @@
 
 
 #include "PickupObject.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 APickupObject::APickupObject()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	active = false;
+	picked = false;
 
 	mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	RootComponent = mesh;
@@ -26,20 +27,17 @@ void APickupObject::Tick(float DeltaTime)
 
 void APickupObject::Pickup(AActor* Picker)
 {
-	active = true;
-	SetActorHiddenInGame(true);
-	
-	AActor* PlayerActor = Cast<AActor>(Picker);
-	if (PlayerActor)
-	{
 
-		SetActorHiddenInGame(false);
-		
+	if (picked == false) 
+	{
+		picked = true;
+		SetActorHiddenInGame(true);
+		SetActorEnableCollision(false);
+
 	}
-	
 }
 
-bool APickupObject::GetActive()
+bool APickupObject::GetIsPicked()
 {
-	return active;
+	return picked;
 }

@@ -7,13 +7,13 @@
 
 void APickupSkill::Pickup(AActor* Picker)
 {
-    active = true;
+    picked = true;
     SetActorHiddenInGame(true);
 }
 
 void APickupSkill::Speedup(AActor* Picker)
 {
-    if (active)
+    if (picked)
     {
         ACharacter* Character = Cast<ACharacter>(Picker);
         if (Character)
@@ -31,13 +31,13 @@ void APickupSkill::Speedup(AActor* Picker)
         }
 
     }
-    active = false;
+    picked = false;
 }
 
 
 void APickupSkill::SpawnWall(AActor* Picker, TSubclassOf<AActor> WallActorClass)
 {
-    if (active)
+    if (picked)
     {
         if (!WallActorClass)
         {
@@ -58,5 +58,5 @@ void APickupSkill::SpawnWall(AActor* Picker, TSubclassOf<AActor> WallActorClass)
 
         }
     }
-    active = false;
+    picked = false;
 }

@@ -13,9 +13,9 @@ class CORN99_API UCombatComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	UCombatComponent();
 
+#pragma region test
 	UFUNCTION(BlueprintCallable, Category = "Weapon|RPC")
 	void CallFireRPC();
 
@@ -32,10 +32,14 @@ public:
 	void Multicast_PlayExplosion(FVector ImpactPoint);
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+#pragma endregion
 
+	
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	//UFUNCTION(Server,Reliable)
+	//void ItemPicked();
 
 public:	
 	// Called every frame
