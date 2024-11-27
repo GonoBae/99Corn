@@ -10,7 +10,7 @@
 
 
 UCLASS()
-class CORN99_API APickupObject : public AActor, public IPickupSystem
+class CORN99_API APickupObject : public AActor
 {
 	GENERATED_BODY()
 	
@@ -19,15 +19,18 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	void Pickup(AActor* Picker) override;
+	virtual void Pickup(AActor* Picker);
 
 	UFUNCTION(BlueprintCallable)
-	bool GetActive();
+	bool GetIsPicked();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool itemUse;
 
 protected:
 	virtual void BeginPlay() override;
 	UPROPERTY()
-	bool active;
+	bool picked;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Mesh")

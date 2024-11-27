@@ -16,7 +16,7 @@ class CORN99_API APickupSkill : public APickupObject
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void Pickup(AActor* Picker) override;
+	void Pickup(AActor* Picker);
 
 	UFUNCTION(BlueprintCallable)
 	void Speedup(AActor* Picker);

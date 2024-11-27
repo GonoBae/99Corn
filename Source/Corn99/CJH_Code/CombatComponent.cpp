@@ -20,7 +20,7 @@ void UCombatComponent::BeginPlay()
 
 
 
-
+#pragma region test
 void UCombatComponent::CallFireRPC()
 {
     if (GetOwner()->HasAuthority())
@@ -34,17 +34,15 @@ void UCombatComponent::CallFireRPC()
 }
 
 
-
-
 void UCombatComponent::CallHitRPC(FVector ImpactPoint)
 {
-     Server_HandleHit(ImpactPoint);
+    Server_HandleHit(ImpactPoint);
 }
 
 
 void UCombatComponent::Multicast_PlayExplosion_Implementation(FVector ImpactPoint)
 {
-  //폭발 효과 재생
+    //폭발 효과 재생
 }
 
 void UCombatComponent::Server_HandleHit_Implementation(FVector ImpactPoint)
@@ -70,4 +68,6 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
+
+#pragma endregion
 
